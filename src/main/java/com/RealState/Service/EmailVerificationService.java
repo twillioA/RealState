@@ -1,6 +1,9 @@
 package com.RealState.Service;
 
+;
 import com.RealState.Entity.User;
+import com.RealState.Service.EmailService;
+import com.RealState.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,34 +13,68 @@ import java.util.Map;
 @Service
 public class EmailVerificationService {
 
-    //wherever you want to use this emailotpmapping i can use this by doing static import**
-    static final Map<String,String> emailOtpMapping = new HashMap<>();
+    static final Map<String, String> emailOtpMapping = new HashMap<>();
 
-    //creating hashmap for response(for status and message)
-    Map<String, String> response = new HashMap<>();
     @Autowired
     private UserService userService;
-    //this is once responsible to verify the otp
-    public Map<String, String>verifyOtp(String email, String otp){
-        //verification(this store otp sent as a email to you abd need to be verified with this String otp if both matches then it correct)
-        String storedOtp = emailOtpMapping.get(email);
-if(storedOtp != null && storedOtp.equals(otp)){
-    //Fectch user by email amd mark email as verified(once true let the entire details in DB able to get through email)
-    User user = userService.getUserByEmail(email);
-    //if present in DB it not equal now thus verify user will set true before it will be false.in user service
-    if(user!= null) {
-        userService.verifyEmail(user);
-        response.put("status", "success");
-        response.put("message", "Email verified successfully");
-    }else {
-        response.put("status", "error");
-        response.put("message", "User not Found");
-    }
-}else {
-    response.put("status", "error");
-    response.put("message", "Invaild Otp");
-}
-return response;
 
+    @Autowired
+    private EmailService emailService;
+
+    public Map<String, String> verifyOtp(String email, String otp) {
+        String storedOtp = emailOtpMapping.get(email);
+        Map<String, String> response = new HashMap<>();
+        if (storedOtp != null && storedOtp.equals(otp)) {
+         User user = userService.getUserByEmail(email);
+            if (user != null) {
+                userService.verifyEmail(user);
+                emailOtpMapping.remove(email);
+                response.put("status", "success");
+                response.put("message", "Email verified successfully");
+            }else{
+                response.put("status", "error");
+                response.put("message", "User not found");
+            }
+        }else{
+            response.put("status", "error");
+            response.put("message", "Invalid OTP");
+        }
+        return response;
+    }
+
+    public Map<String, String> sendOtpForLogin(String email) {
+        if (userService.isEmailVerified(email)) {
+            String otp = emailService.generateOtp();
+            emailOtpMapping.put(email, otp);
+
+            // Send OTP to the user's email
+            emailService.sendOtpEmail(email);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "OTP sent successfully");
+            return response;
+        } else {
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", "Email is not verified");
+            return response;
+        }
+    }
+    public Map<String, String> verifyOtpForLogin(String email, String otp) {
+        String storedOtp = emailOtpMapping.get(email);
+
+        Map<String, String> response = new HashMap<>();
+        if (storedOtp != null && storedOtp.equals(otp)) {
+            emailOtpMapping.remove(email);
+            response.put("status", "success");
+            response.put("message", "OTP verified successfully");
+        } else {
+            // Invalid OTP
+            response.put("status", "error");
+            response.put("message", "Invalid OTP");
+        }
+
+        return response;
     }
 }

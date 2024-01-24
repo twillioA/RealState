@@ -14,14 +14,18 @@ public class UserService {
         // Save the user to the database
         return userRepository.save(user);
     }
-//Help me to search the record based on email Id.
+
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email);
-
     }
-// it set the email as true.It is getting the email value to there object(User user) only we are updating boolean value as email verified to true and save it.
+
     public void verifyEmail(User user) {
         user.setEmailVerified(true);
         userRepository.save(user);
+    }
+
+    public boolean isEmailVerified(String email) {
+        User user = userRepository.findByEmail(email);
+        return user != null && user.isEmailVerified();
     }
 }
